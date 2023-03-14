@@ -428,7 +428,6 @@ export class Feature {
 
         // Get the ticket number        // Get the ticket number
         const ticketNumber = Number(interaction.customId.match(/^close-ticket \[(\d+)\]/)?.[1] ?? interaction.customId.match(/^close-and-save-ticket \[(\d+)\]/)?.[1]);
-        this.logger.info(interaction.customId, ticketNumber);
         if (!ticketNumber) return;
 
         this.logger.info(`Closing ticket #${ticketNumber} for ${interaction.user.tag} (${interaction.user.id})`);
@@ -526,9 +525,7 @@ export class Feature {
 
         // Add the transcript to the message
         if (transcript.length >= 1) {
-            this.logger.info('transcript', transcript, transcript.length);
             const transcriptChunks = splitTranscript(transcript);
-            this.logger.info('transcriptChunks', transcriptChunks, transcriptChunks.length);
             for (let index = 0; index < transcriptChunks.length; index++) {
                 files.push(new AttachmentBuilder(Buffer.from(transcriptChunks[index]), {
                     name: `ticket-${ticketNumber}-transcript-part-${index}.txt`,

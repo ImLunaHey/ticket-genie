@@ -2,7 +2,8 @@ import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, Guild as GuildGuard, On, SelectMenuComponent } from 'discordx';
 import { outdent } from 'outdent'
-import { ChannelType, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, User, StringSelectMenuInteraction, Guild, PermissionFlagsBits, Colors, Message, AttachmentBuilder, EmbedBuilder, DiscordAPIError } from 'discord.js';
+import type { TextChannel, User, Guild, Message } from 'discord.js';
+import { ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, PermissionFlagsBits, Colors, AttachmentBuilder, EmbedBuilder, DiscordAPIError } from 'discord.js';
 
 // The guild
 const guildId = '927461441051701280';
@@ -14,13 +15,13 @@ let createATicketChannelId = '1085374793416712232';
 let ticketsCategoryId = '1085373347174551562';
 
 // Verified role
-let verifiedRoleId = '965589467832401950';
+const verifiedRoleId = '965589467832401950';
 
 // Needed roles to verify, any of these and you'll be able to verify
-let verifyRoleIds = ['960100946971607080', '957109628582367262', '927532000330539068', '927532070216011806', '969550549122945074', '1009015173484392478'];
+const verifyRoleIds = ['960100946971607080', '957109628582367262', '927532000330539068', '927532070216011806', '969550549122945074', '1009015173484392478'];
 
 // Staff
-let staffRoleId = '965591036711800842';
+const staffRoleId = '965591036711800842';
 let staffCategoryId = '1085374959611814009';
 let staffTicketsChannelId = '1085375115233087488';
 let archivedTicketsChannelId = '1085375283886030989';
@@ -31,7 +32,7 @@ const splitTranscript = (inputString: string): string[] => {
     let currentLine = '';
 
     // Loop through the lines
-    for (let line of lines) {
+    for (const line of lines) {
         // If the line + current line is less than 8MB, add it to the current line
         // Otherwise, push the current line to the result and start a new line
         if (currentLine.length + line.length <= 8_000_000) {
@@ -142,7 +143,7 @@ export class Feature {
         }
     }
 
-    async setupPermissions() {
+    setupPermissions() {
         // Get the guild
         const guild = this.client.guilds.cache.get(guildId);
         if (!guild) {
@@ -222,7 +223,7 @@ export class Feature {
         await this.setupChannels();
 
         // Make sure permissions are correct
-        await this.setupPermissions();
+        this.setupPermissions();
 
         // Make sure the create a ticket channel has a "create a ticket" message
         await this.setupCreateATicketMessage();
@@ -318,6 +319,9 @@ export class Feature {
         const ticketNumber = this.currentTicketNumber += 1;
         this.logger.info(`Creating ticket #${ticketNumber} for ${user.tag} (${user.id})`);
 
+        // The bot gets this on login
+        if (!this.client.user) throw new Error('Bot is still starting up');
+
         // Get the @everyone role
         if (!guild.roles.everyone?.id) await guild.roles.fetch('@everyone');
 
@@ -350,12 +354,11 @@ export class Feature {
                 // Ticket Genie can send embed messages in the channel
                 // Ticket Genie can change permissions in the channel
                 {
-                    id: this.client.user!.id,
+                    id: this.client.user.id,
                     allow: [
                         PermissionFlagsBits.AttachFiles,
                         PermissionFlagsBits.EmbedLinks,
                         PermissionFlagsBits.ManageChannels,
-                        // PermissionFlagsBits.ManageRoles,
                         PermissionFlagsBits.ReadMessageHistory,
                         PermissionFlagsBits.SendMessages,
                         PermissionFlagsBits.ViewChannel,
@@ -603,7 +606,10 @@ export class Feature {
         if (!interaction.deferred) await interaction.deferReply({ ephemeral: true });
 
         // Get the ticket number
-        const ticketNumber = parseInt(interaction.customId.match(/^claim-ticket \[(\d+)\]/)![1]);
+        const ticketNumber = Number(interaction.customId.match(/^claim-ticket \[(\d+)\]/)?.[1]);
+
+        // If the ticket number is invalid, ignore it
+        if (!ticketNumber) return;
 
         // Get the ticket channel
         const channel = interaction.guild.channels.cache.find(channel => channel.name === `ticket-${ticketNumber}`) as TextChannel;
@@ -680,7 +686,7 @@ export class Feature {
 
         // Let the user know the ticket has been claimed
         await channel.send({
-            content: `@here`,
+            content: '@here',
             embeds: [
                 new EmbedBuilder()
                     .setTitle('Ticket claimed')
@@ -708,7 +714,10 @@ export class Feature {
         if (!interaction.deferred) await interaction.deferUpdate();
 
         // Get the ticket number
-        const ticketNumber = parseInt(interaction.customId.match(/^unclaim-ticket \[(\d+)\]/)![1]);
+        const ticketNumber = Number(interaction.customId.match(/^unclaim-ticket \[(\d+)\]/)?.[1]);
+
+        // If the ticket number is invalid, ignore it
+        if (!ticketNumber) return;
 
         // Get the ticket channel
         const channel = interaction.guild.channels.cache.find(channel => channel.name === `ticket-${ticketNumber}`) as TextChannel;
@@ -760,11 +769,11 @@ export class Feature {
 
         // Let the user know the ticket has been unclaimed
         await channel.send({
-            content: `@here`,
+            content: '@here',
             embeds: [
                 new EmbedBuilder()
                     .setTitle('Ticket unclaimed')
-                    .setDescription(`This ticket has been unclaimed, another member of staff should be along shortly to help you.`)
+                    .setDescription('This ticket has been unclaimed, another member of staff should be along shortly to help you.')
                     .setColor(Colors.Aqua)
                     .setTimestamp(new Date())
             ],
@@ -814,7 +823,10 @@ export class Feature {
         }
 
         // Get the ticket number
-        const ticketNumber = parseInt(interaction.customId.match(/^staff-tools \[(\d+)\]/)![1]);
+        const ticketNumber = Number(interaction.customId.match(/^staff-tools \[(\d+)\]/)?.[1]);
+
+        // If the ticket number is invalid, ignore it
+        if (!ticketNumber) return;
 
         // Send the staff tools message
         await interaction.editReply({

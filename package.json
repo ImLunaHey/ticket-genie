@@ -9,7 +9,8 @@
     "test": "dotenv -e .env.test -- npx jest --detectOpenHandles",
     "coverage": "npm run test -- --coverage",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "npm run lint -- --fix"
+    "lint:fix": "npm run lint -- --fix",
+    "release": "standard-version"
   },
   "type": "module",
   "devDependencies": {
@@ -27,6 +28,7 @@
     "outdent": "^0.8.0",
     "reflect-metadata": "^0.1.13",
     "signales": "^2.0.5",
+    "standard-version": "^9.5.0",
     "ts-jest": "^29.0.5",
     "tsup": "^6.6.3",
     "typescript": "^4.9.5",

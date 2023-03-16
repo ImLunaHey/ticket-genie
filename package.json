@@ -1,5 +1,6 @@
 {
   "name": "ticket-genie",
+  "version": "0.0.0",
   "scripts": {
     "preinstall": "npx typesync",
     "postinstall": "npx patch-package",

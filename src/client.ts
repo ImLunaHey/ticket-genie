@@ -7,6 +7,7 @@ const { name } = pkg;
 export const client = createDiscordClient(name, {
     intents: [
         IntentsBitField.Flags.MessageContent,
+        IntentsBitField.Flags.Guilds,
     ],
     partials: [
         Partials.Channel,

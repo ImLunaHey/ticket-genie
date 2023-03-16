@@ -1,22 +1,29 @@
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, Guild as GuildGuard, On, SelectMenuComponent } from 'discordx';
+import { outdent } from 'outdent'
 import { ChannelType, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, User, StringSelectMenuInteraction, Guild, PermissionFlagsBits, Colors, Message, AttachmentBuilder, EmbedBuilder, DiscordAPIError } from 'discord.js';
 
-// The testing guild
-const guildId = '987849604424929310';
+// The guild
+const guildId = '927461441051701280';
 
 // Everyone
-let createATicketChannelId = '1085171720522043463';
+let createATicketChannelId = '1085374793416712232';
 
 // Ticket author + mod who accepted ticket per channel
-let ticketsCategoryId = '1085169037622923304';
+let ticketsCategoryId = '1085373347174551562';
+
+// Verified role
+let verifiedRoleId = '965589467832401950';
+
+// Needed roles to verify, any of these and you'll be able to verify
+let verifyRoleIds = ['960100946971607080', '957109628582367262', '927532000330539068', '927532070216011806', '969550549122945074', '1009015173484392478'];
 
 // Staff
-let staffRoleId = '996299019003371590';
-let staffCategoryId = '1085167974505263114';
-let staffTicketsChannelId = '1085168034165030922';
-let archivedTicketsChannelId = '1085168228797521991';
+let staffRoleId = '965591036711800842';
+let staffCategoryId = '1085374959611814009';
+let staffTicketsChannelId = '1085375115233087488';
+let archivedTicketsChannelId = '1085375283886030989';
 
 const splitTranscript = (inputString: string): string[] => {
     const lines = inputString.split('\n');
@@ -230,9 +237,37 @@ export class Feature {
     async createATicket(interaction: ButtonInteraction) {
         // If this is not in a guild, ignore it
         if (!interaction.guild) return;
+        const member = interaction.member;
+        if (!member) return;
 
         // Show the bot is thinking
         await interaction.deferReply({ ephemeral: true });
+
+        // Check if they can verify
+        const isLevelToVerify = verifyRoleIds.some(roleId => Array.isArray(member.roles) ? member.roles.includes(roleId) : member.roles.cache.has(roleId));
+        const isVerified = verifiedRoleId ? Array.isArray(member.roles) ? member.roles.includes(verifiedRoleId) : member.roles.cache.has(verifiedRoleId) : false;
+
+        // Check if they're already verified, if so don't give them the option to open a verification ticket
+        if (isVerified || !isLevelToVerify) {
+            // Show the dropdown menu
+            await interaction.editReply({
+                content: 'Please select a category',
+                components: [
+                    new ActionRowBuilder<StringSelectMenuBuilder>()
+                        .addComponents(
+                            new StringSelectMenuBuilder()
+                                .setCustomId('create-a-ticket-category')
+                                .setPlaceholder('Select a category')
+                                .addOptions([
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel('Support')
+                                        .setValue('support'),
+                                ])
+                        )
+                ]
+            });
+            return;
+        }
 
         // Show the dropdown menu
         await interaction.editReply({
@@ -282,6 +317,9 @@ export class Feature {
     async createTicket(guild: Guild, user: User, category: 'support' | 'verification'): Promise<Message<true>> {
         const ticketNumber = this.currentTicketNumber += 1;
         this.logger.info(`Creating ticket #${ticketNumber} for ${user.tag} (${user.id})`);
+
+        // Get the @everyone role
+        if (!guild.roles.everyone?.id) await guild.roles.fetch('@everyone');
 
         // Create the channel
         const channel = await guild.channels.create({
@@ -391,7 +429,12 @@ export class Feature {
                 return channel.send({
                     embeds: [{
                         title: 'Welcome to the verification ticket',
-                        description: 'Please send a picture of your ID card or passport to verify your identity, and we will get back to you as soon as possible.',
+                        description: outdent`
+                            Please send the following to be verified.
+
+                            1. A photo of you holding your ID showing just the date of birth and the photo, everything else should be covered.
+                            2. A photo of you holding a piece of paper with your discord username and today's date written on it.
+                        `,
                         color: Colors.Aqua,
                         footer: {
                             text: `Ticket #${ticketNumber}`,

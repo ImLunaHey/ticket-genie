@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  // The guild's ID
+  id String @id @unique
+
+  // The guild's members
+  members GuildMember[]
+
+  // All the panels for this guild
+  panels Panel[]
+}
+
+model GuildMember {
+  id String @id @unique
+
+  // All of the tickets this member has created
+  tickets Ticket[] @relation("tickets")
+
+  // All of the tickets this member has claimed
+  claimedTickets Ticket[] @relation("claimedTickets")
+
+  // The guild this member is in
+  guild   Guild?  @relation(fields: [guildId], references: [id])
+  guildId String?
+}
+
+model Ticket {
+  id String @id @default(uuid())
+
+  // The user who created this ticket
+  guildMember   GuildMember @relation("tickets", fields: [guildMemberId], references: [id])
+  guildMemberId String
+
+  // The member who claimed this ticket
+  claimedBy   GuildMember? @relation("claimedTickets", fields: [claimedById], references: [id])
+  claimedById String?
+
+  // The type of ticket this is
+  type   TicketType @relation(fields: [typeId], references: [id])
+  typeId String
+
+  // When the ticket was created
+  createdAt DateTime @default(now())
+
+  // When the ticket was last updated
+  updatedAt DateTime @updatedAt
+}
+
+model TicketType {
+  id String @id @default(uuid())
+
+  // Whether this ticket type is enabled
+  enabled Boolean @default(true)
+
+  // User friendly name
+  name String
+
+  // The emoji to display
+  emoji String?
+
+  // The message to send when the ticket is created
+  replyMessage String
+
+  // The message posted in the ticket channel after creation
+  ticketMessage String
+
+  // Roles that are required to create this ticket
+  // If empty, anyone can create this ticket
+  // Tickets that can't be created won't be displayed in the panel's drop down
+  requiredRoleIds String[]
+
+  // Users with these roles won't be able to create this ticket even if they have the required roles
+  prohibitedRoleIds String[]
+
+  // Which panel this ticket type is for
+  panel   Panel?   @relation(fields: [panelId], references: [id])
+  panelId String?
+  Ticket  Ticket[]
+}
+
+model Panel {
+  id String @id @default(uuid())
+
+  // Whether this panel is enabled
+  enabled Boolean @default(true)
+
+  // Which guild this panel is for
+  guild   Guild  @relation(fields: [guildId], references: [id])
+  guildId String
+
+  // Current ticket number
+  ticketNumber Int @default(0)
+
+  // The channel where the panel is posted
+  channelId String
+
+  // The role that can manage these tickets
+  managerRoleIds String[]
+
+  // Where the ticket is created
+  ticketsCategoryId String
+
+  // Ticket types
+  ticketTypes TicketType[]
+
+  // The "create a ticket" button
+  buttonMessage String
+
+  // When the panel was created
+  createdAt DateTime @default(now())
+
+  // When the panel was last updated
+  updatedAt DateTime @updatedAt
+}

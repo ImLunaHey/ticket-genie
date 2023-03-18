@@ -49,5 +49,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/ImLunaHey/ticket-genie.git"
+  },
+  "overrides": {
+    "tsup": {
+      "typescript": "$typescript"
+    }
   }
 }

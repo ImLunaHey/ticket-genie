@@ -29,7 +29,9 @@ export const createDiscordClient = (name: string, { intents, partials, prefix }:
     });
 
     client.once('ready', async () => {
-        globalLogger.info('Connected to discord as %s', client.user?.username);
+        globalLogger.info('Connected to discord', {
+            username: client.user?.username,
+        });
 
         // Make sure all guilds are in cache
         globalLogger.info('Fetching all guilds');
@@ -39,7 +41,9 @@ export const createDiscordClient = (name: string, { intents, partials, prefix }:
         globalLogger.info('Initializing all application commands');
         await client.initApplicationCommands();
 
-        globalLogger.info('%s is ready', client.user?.username);
+        globalLogger.info('Bot is ready', {
+            username: client.user?.username,
+        });
     });
 
     client.on('interactionCreate', (interaction: Interaction) => {

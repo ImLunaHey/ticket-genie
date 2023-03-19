@@ -3,7 +3,21 @@ import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, Guild as GuildGuard, On, SelectMenuComponent } from 'discordx';
 import { outdent } from 'outdent'
 import type { TextChannel, User, Guild, Message } from 'discord.js';
-import { ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, PermissionFlagsBits, Colors, AttachmentBuilder, EmbedBuilder, DiscordAPIError } from 'discord.js';
+import {
+    ChannelType,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ButtonInteraction,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    StringSelectMenuInteraction,
+    PermissionFlagsBits,
+    Colors,
+    AttachmentBuilder,
+    EmbedBuilder,
+    DiscordAPIError
+} from 'discord.js';
 
 // The guild
 const guildId = '927461441051701280';
@@ -55,11 +69,13 @@ const splitTranscript = (inputString: string): string[] => {
 @GuildGuard(guildId)
 export class Feature {
     private client = client;
-    private logger = globalLogger.scope('Tickets');
+    private logger = globalLogger.child({
+        service: 'tickets',
+    });
     private currentTicketNumber: number;
 
     constructor() {
-        this.logger.success('Feature initialized');
+        this.logger.info('Initialised');
     }
 
     async setupChannels() {
@@ -73,8 +89,12 @@ export class Feature {
         // Make sure the create a ticket channel exists
         const createATicketChannel = this.client.channels.cache.get(createATicketChannelId) ?? await this.client.channels.fetch(createATicketChannelId);
         if (!createATicketChannel) {
-            this.logger.error('Create a ticket channel not found');
-            this.logger.info('Creating create a ticket channel');
+            this.logger.error('Create a ticket channel not found', {
+                guildId: guild.id,
+            });
+            this.logger.info('Creating create a ticket channel', {
+                guildId: guild.id,
+            });
             const channel = await guild.channels.create({
                 type: ChannelType.GuildText,
                 name: 'create-a-ticket',
@@ -86,8 +106,12 @@ export class Feature {
         // Make sure the staff tickets channel exists
         const staffTicketsChannel = this.client.channels.cache.get(staffTicketsChannelId) ?? await this.client.channels.fetch(staffTicketsChannelId);
         if (!staffTicketsChannel) {
-            this.logger.error('Staff tickets channel not found');
-            this.logger.info('Creating staff tickets channel');
+            this.logger.error('Staff tickets channel not found', {
+                guildId: guild.id,
+            });
+            this.logger.info('Creating staff tickets channel', {
+                guildId: guild.id,
+            });
             const channel = await guild.channels.create({
                 type: ChannelType.GuildText,
                 name: 'tickets',
@@ -99,8 +123,12 @@ export class Feature {
         // Make sure the archived tickets channel exists
         const archivedTicketsChannel = this.client.channels.cache.get(archivedTicketsChannelId) ?? await this.client.channels.fetch(archivedTicketsChannelId);
         if (!archivedTicketsChannel) {
-            this.logger.error('Archived tickets channel not found');
-            this.logger.info('Creating archived tickets channel');
+            this.logger.error('Archived tickets channel not found', {
+                guildId: guild.id,
+            });
+            this.logger.info('Creating archived tickets channel', {
+                guildId: guild.id,
+            });
             const channel = await guild.channels.create({
                 type: ChannelType.GuildText,
                 name: 'archived-tickets',
@@ -122,7 +150,9 @@ export class Feature {
         const ticketsCategory = this.client.channels.cache.get(ticketsCategoryId) ?? await this.client.channels.fetch(ticketsCategoryId);
         if (!ticketsCategory) {
             this.logger.error('Tickets category not found');
-            this.logger.info('Creating tickets category');
+            this.logger.info('Creating tickets category', {
+                guildId: guild.id,
+            });
             const category = await guild.channels.create({
                 name: 'Tickets',
                 type: ChannelType.GuildCategory,
@@ -134,7 +164,9 @@ export class Feature {
         const ticketAdminCategory = this.client.channels.cache.get(staffCategoryId) ?? await this.client.channels.fetch(staffCategoryId);
         if (!ticketAdminCategory) {
             this.logger.error('Ticket admin category not found');
-            this.logger.info('Creating ticket admin category');
+            this.logger.info('Creating ticket admin category', {
+                guildId: guild.id,
+            });
             const category = await guild.channels.create({
                 name: 'Ticket Admin',
                 type: ChannelType.GuildCategory,
@@ -147,7 +179,9 @@ export class Feature {
         // Get the guild
         const guild = this.client.guilds.cache.get(guildId);
         if (!guild) {
-            this.logger.error('Guild not found');
+            this.logger.error('Guild not found', {
+                guildId,
+            });
             return;
         }
 
@@ -211,8 +245,6 @@ export class Feature {
         event: 'ready',
     })
     async ready() {
-        this.logger.success('Ready');
-
         // Fetch the needed channels
         await client.guilds.cache.get(guildId)?.channels.fetch();
 
@@ -317,7 +349,12 @@ export class Feature {
 
     async createTicket(guild: Guild, user: User, category: 'support' | 'verification'): Promise<Message<true>> {
         const ticketNumber = this.currentTicketNumber += 1;
-        this.logger.info(`Creating ticket #${ticketNumber} for ${user.tag} (${user.id})`);
+
+        this.logger.info('Creating ticket', {
+            userId: user.id,
+            guildId: guild.id,
+            ticketNumber,
+        });
 
         // The bot gets this on login
         if (!this.client.user) throw new Error('Bot is still starting up');
@@ -476,7 +513,11 @@ export class Feature {
         const ticketNumber = Number(interaction.customId.match(/^close-ticket \[(\d+)\]/)?.[1] ?? interaction.customId.match(/^close-and-save-ticket \[(\d+)\]/)?.[1]);
         if (!ticketNumber) return;
 
-        this.logger.info(`Closing ticket #${ticketNumber} for ${interaction.user.tag} (${interaction.user.id})`);
+        this.logger.info('Closing ticket', {
+            userId: interaction.user.id,
+            guildId: interaction.guild.id,
+            ticketNumber,
+        });
 
         // Get the ticket channel
         const channel = interaction.guild.channels.cache.find(channel => channel.name === `ticket-${ticketNumber}`) as TextChannel;
@@ -670,7 +711,11 @@ export class Feature {
             return;
         }
 
-        this.logger.info(`Claiming ticket #${ticketNumber} for ${interaction.user.tag} (${interaction.user.id})`);
+        this.logger.info('Claiming ticket', {
+            userId: interaction.user.id,
+            guildId: interaction.guild.id,
+            ticketNumber,
+        });
 
         // Update the channel permissions
         await channel.permissionOverwrites.edit(interaction.user.id, {

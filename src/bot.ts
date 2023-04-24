@@ -6,7 +6,7 @@ import { client } from '@app/client';
 
 const { name } = pkg;
 
-export const start = async () => {
+export const startBot = async () => {
     globalLogger.info('Starting bot', {
         name,
         env: env.NODE_ENV,

@@ -10,10 +10,6 @@ RUN npm install
 COPY src /app/src
 COPY tsconfig.json /app/
 COPY patches /app/patches
-COPY prisma /app/prisma
-
-# Generate Prisma Client
-RUN npx prisma generate
 
 # Build application
 RUN npm run build
@@ -25,8 +21,6 @@ WORKDIR /app
 
 # Copying build output
 COPY --from=builder --chown=node:node /app/package*.json ./
-COPY --from=builder --chown=node:node /app/prisma prisma
-COPY --from=builder --chown=node:node /app/node_modules/.prisma node_modules/.prisma
 COPY --from=builder --chown=node:node /app/dist dist
 
 # Copy assets

@@ -919,7 +919,7 @@ export class Feature {
         }
 
         // Get the ticket ID from the button's custom ID
-        const ticketId = parse('close-ticket', interaction.customId).uuid;
+        const ticketId = parse('close-and-save-ticket', interaction.customId).uuid;
         if (!ticketId) throw new Error('Invalid ticket ID');
 
         // Get the ticket
@@ -1161,7 +1161,7 @@ export class Feature {
         if (!interaction.deferred) await interaction.deferUpdate();
 
         // Get the ticket ID from the button's custom ID
-        const ticketId = parse('close-ticket', interaction.customId).uuid;
+        const ticketId = parse('unclaim-ticket', interaction.customId).uuid;
         if (!ticketId) throw new Error('Invalid ticket ID');
 
         // Get the ticket
@@ -1294,7 +1294,7 @@ export class Feature {
         const member = await interaction.guild.members.fetch(interaction.user.id);
 
         // Get the ticket ID from the button's custom ID
-        const ticketId = parse('close-ticket', interaction.customId).uuid;
+        const ticketId = parse('staff-tools', interaction.customId).uuid;
         if (!ticketId) throw new Error('Invalid ticket ID');
 
         // Get the ticket

@@ -33,7 +33,8 @@ const createRegex = (phrase: string): RegExp => new RegExp(`(${phrase})\\s+(?<uu
 
 const parse = <T>(phrase: string, input: string): MyObject<T> => {
     const match = input.match(createRegex(phrase));
-    if (!match) throw new Error('Invalid input');
+    if (!match) throw new Error(`This is used in the wrong button, looking in "${input}" for "${phrase}".`);
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const { uuid, json_args } = match.groups!;
     const parsedJson = json_args === 'undefined' ? undefined as T : JSON.parse(json_args) as T;
@@ -551,6 +552,12 @@ export class Feature {
         const categoryId = interaction.values[0];
         if (!categoryId) throw new Error('Invalid category ID');
 
+        // Let the user know their ticket is being created
+        await interaction.editReply({
+            content: 'https://media.tenor.com/Z8SwGzcIitEAAAAC/just-give-me-a-minute-hang-on.gif',
+            components: [],
+        });
+
         // Create the ticket
         const ticketChannel = await this.createTicket(interaction.guild, interaction.user, categoryId);
 
@@ -790,7 +797,18 @@ export class Feature {
             .select('ticketNumber')
             .select('categoryId')
             .where('id', '=', ticketId)
-            .executeTakeFirstOrThrow();
+            .executeTakeFirst();
+
+        // If we have no record of the ticket in the database then it's somehow vanished
+        // This should only really happen to tickets made before the rewrite to planetscale
+        if (!ticket) {
+            // Send the ticket missing message
+            await interaction.editReply({
+                content: `This ticket is missing. ID: ${ticketId}`,
+                components: [],
+            });
+            return;
+        }
 
         // Get the ticket's category
         const category = await db
@@ -994,8 +1012,14 @@ export class Feature {
         if (!interaction.deferred) await interaction.deferReply({ ephemeral: true });
 
         // Get the ticket ID from the button's custom ID
-        const ticketId = parse('close-ticket', interaction.customId).uuid;
+        const ticketId = parse('claim-ticket', interaction.customId).uuid;
         if (!ticketId) throw new Error('Invalid ticket ID');
+
+        this.logger.info('Claiming ticket', {
+            guildId: interaction.guild.id,
+            userId: interaction.user.id,
+            ticketId,
+        });
 
         // Get the ticket
         const ticket = await db
@@ -1005,7 +1029,18 @@ export class Feature {
             .select('ticketNumber')
             .select('categoryId')
             .where('id', '=', ticketId)
-            .executeTakeFirstOrThrow();
+            .executeTakeFirst();
+
+        // If we have no record of the ticket in the database then it's somehow vanished
+        // This should only really happen to tickets made before the rewrite to planetscale
+        if (!ticket) {
+            // Send the ticket missing message
+            await interaction.editReply({
+                content: `This ticket is missing. ID: ${ticketId}`,
+                components: [],
+            });
+            return;
+        }
 
         // Get the ticket's category
         const category = await db

@@ -107,5 +107,3 @@ export const seedDatabase = async () => {
         .execute();
     console.log('done');
 };
-
-void seedDatabase();

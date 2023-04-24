@@ -118,15 +118,13 @@ export class Feature {
         return results.map(result => result.status === 'fulfilled' ? result.value : undefined).filter(Boolean);
     }
 
-    async setupChannels() {
+    async setupChannels(guilds: Guild[]) {
         const botUserId = this.client.user?.id;
         if (!botUserId) throw new Error('Bot is still starting');
 
-        // Get all the guilds that have this bot added
-        const guilds = await this.getGuilds();
-
-        // Loop through all the guilds that have this bot added
-        for (const guild of guilds) {            // Get the panels for this guild
+        // Loop through all the guilds
+        for (const guild of guilds) {
+            // Get the panels for this guild
             const panels = await db
                 .selectFrom('panels')
                 .where('guildId', '=', guild.id)
@@ -297,11 +295,8 @@ export class Feature {
         }
     }
 
-    async setupCategories() {
-        // Get all the guilds that have this bot added
-        const guilds = await this.getGuilds();
-
-        // Loop through all the guilds that have this bot added
+    async setupCategories(guilds: Guild[]) {
+        // Loop through all the guilds
         for (const guild of guilds) {
             // Get the panels for this guild
             const panels = await db
@@ -363,7 +358,7 @@ export class Feature {
         // Get all the guilds that have this bot added
         const guilds = await this.getGuilds();
 
-        // Loop through all the guilds that have this bot added
+        // Loop through all the guilds
         for (const guild of guilds) {
             // Get the panels for this guild
             const panels = await db
@@ -409,17 +404,78 @@ export class Feature {
         event: 'ready',
     })
     async ready() {
+        // Get all the guilds that have this bot added
+        const guilds = await this.getGuilds();
+
         // Setup the categories
-        await this.setupCategories();
+        await this.setupCategories(guilds);
 
         // Setup the channels
-        await this.setupChannels();
+        await this.setupChannels(guilds);
 
         // Make sure permissions are correct
         await this.setupPermissions();
 
         // Make sure each panel's message exists
         await this.setupCreateATicketMessage();
+    }
+
+    @On({
+        event: 'guildCreate'
+    })
+    async guildCreate(guild: Guild) {
+        this.logger.info('Added to server', {
+            guildId: guild.id,
+        });
+
+        // Message owner
+        const owner = await this.client.users.fetch('784365843810222080');
+        if (!owner.dmChannel) await owner.createDM();
+        await owner.dmChannel?.send({
+            embeds: [{
+                title: 'Added to server',
+                fields: [{
+                    name: 'Server ID',
+                    value: guild.id,
+                }]
+            }]
+        });
+
+        const channel = [...guild.channels.cache.values()].filter(channel => channel.type === ChannelType.GuildText)[0] as TextChannel;
+        await channel.send({
+            content: 'Hi, please message <@784365843810222080> to help me get setup.',
+        });
+
+        // Add basic info about guild to database
+        await db
+            .insertInto('guilds')
+            .values({
+                id: guild.id,
+                ticketNumber: 0,
+            })
+            .execute();
+    }
+
+    @On({
+        event: 'guildDelete'
+    })
+    async guildDelete(guild: Guild) {
+        this.logger.info('Removed from server', {
+            guildId: guild.id,
+        });
+
+        // Message owner
+        const owner = await this.client.users.fetch('784365843810222080');
+        if (!owner.dmChannel) await owner.createDM();
+        await owner.dmChannel?.send({
+            embeds: [{
+                title: 'Removed from server',
+                fields: [{
+                    name: 'Server ID',
+                    value: guild.id,
+                }]
+            }]
+        });
     }
 
     @On({

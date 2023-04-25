@@ -1,10 +1,9 @@
-import { PlanetScaleDialect } from 'kysely-planetscale'
-import { fetch } from 'undici'
-
+import { PlanetScaleDialect } from 'kysely-planetscale';
+import { fetch } from 'undici';
 import { CamelCasePlugin, Kysely } from 'kysely';
-import type { Generated, RawBuilder, ColumnType } from 'kysely'
+import type { Generated, RawBuilder, ColumnType } from 'kysely';
 
-type CategoryTable = {
+type Category = {
     // Random UUID
     id: Generated<string>;
 
@@ -137,7 +136,7 @@ type CategoryTable = {
     panelId: string;
 };
 
-type TicketTable = {
+type Ticket = {
     // Random UUID
     id: Generated<string>;
 
@@ -172,7 +171,7 @@ type TicketTable = {
     ticketAdminMessageId?: string;
 };
 
-type GuildMemberTable = {
+type GuildMember = {
     // The discord snowflake
     id: Generated<string>;
 
@@ -180,7 +179,7 @@ type GuildMemberTable = {
     guildId: string;
 };
 
-type GuildTable = {
+type Guild = {
     // The discord snowflake
     id: Generated<string>;
 
@@ -192,7 +191,7 @@ type GuildTable = {
     enabled?: boolean;
 };
 
-type PanelTable = {
+type Panel = {
     // Random UUID
     id: Generated<string>;
 
@@ -218,11 +217,11 @@ type PanelTable = {
 
 // Keys of this are table names.
 export type Database = {
-    categories: CategoryTable;
-    tickets: TicketTable;
-    guildMembers: GuildMemberTable;
-    guilds: GuildTable;
-    panels: PanelTable;
+    categories: Category;
+    tickets: Ticket;
+    guildMembers: GuildMember;
+    guilds: Guild;
+    panels: Panel;
 };
 
 export const db = new Kysely<Database>({

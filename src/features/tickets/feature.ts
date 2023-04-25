@@ -2,7 +2,8 @@ import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
-import type { TextChannel, User, Guild } from 'discord.js';
+import type { TextChannel, User, GuildMemberRoleManager, Role } from 'discord.js';
+import { Guild, Collection } from 'discord.js';
 import {
     ChannelType,
     ActionRowBuilder,
@@ -28,6 +29,12 @@ type MyObject<T = Record<string, unknown>> = {
     uuid: string;
     json_args: T;
 }
+
+const resolveRoles = async (guild: Guild, roles: GuildMemberRoleManager | string[] | null | undefined) => {
+    if (!roles) return new Collection<string, Role>();
+    if (Array.isArray(roles)) return guild.roles.fetch();
+    return roles.cache;
+};
 
 const createRegex = (phrase: string): RegExp => new RegExp(`(${phrase})\\s+(?<uuid>[a-fA-F0-9-]+)\\s+(?<json_args>{.*}|undefined)`);
 
@@ -564,6 +571,9 @@ export class Feature {
         // Get the panelId from the button's customId
         const panelId = parse('create-a-ticket', interaction.customId).uuid;
 
+        // Get the user's roles
+        const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
+
         // Get all the categories
         const categories = await db
             .selectFrom('categories')
@@ -571,8 +581,8 @@ export class Feature {
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            // .where('requiredRoleIds', 'in', (interaction.member?.roles as GuildMemberRoleManager).cache.map(role => role.id))
-            // .where('prohibitedRoleIds', 'not in', (interaction.member?.roles as GuildMemberRoleManager).cache.map(role => role.id))
+            .where('requiredRoleIds', 'in', roles.map(role => role.id))
+            .where('prohibitedRoleIds', 'not in', roles.map(role => role.id))
             .execute();
 
         // Show the dropdown menu

@@ -3,6 +3,7 @@ import { db } from '@app/common/database';
 import outdent from 'outdent';
 import type { RawBuilder } from 'kysely';
 import { sql } from 'kysely';
+import { globalLogger } from '@app/logger';
 
 const guildId = '927461441051701280';
 const ticketPanelId = '62b8d5aa-c64f-43b6-ba4d-db3d8b4fe404';
@@ -14,10 +15,10 @@ const json = <T>(value: T): RawBuilder<T> => sql`CAST(${JSON.stringify(value)} A
 export const seedDatabase = async () => {
     // This will seed data for luna's lobby
     // This should be removed before going stable
-    console.log('Seeding database');
+    globalLogger.debug('Seeding database');
 
     // Create the guild
-    console.log('Creating the guild');
+    globalLogger.debug('Creating the guild');
     await db
         .insertInto('guilds')
         .ignore()
@@ -27,10 +28,9 @@ export const seedDatabase = async () => {
             ticketNumber: 0,
         })
         .execute();
-    console.log('done');
 
     // Create the support category
-    console.log('Creating the "support" category');
+    globalLogger.debug('Creating the "support" category');
     const query = db
         .insertInto('categories')
         .ignore()
@@ -49,10 +49,9 @@ export const seedDatabase = async () => {
             panelId: ticketPanelId,
         });
     await query.execute();
-    console.log('done');
 
     // Create the verification category
-    console.log('Creating the "verification" category');
+    globalLogger.debug('Creating the "verification" category');
     await db
         .insertInto('categories')
         .ignore()
@@ -85,10 +84,9 @@ export const seedDatabase = async () => {
             panelId: ticketPanelId,
         })
         .execute();
-    console.log('done');
 
     // Create the main ticket panel in the "create-a-ticket" channel
-    console.log('Creating a panel');
+    globalLogger.debug('Creating a panel');
     await db
         .insertInto('panels')
         .ignore()
@@ -107,5 +105,4 @@ export const seedDatabase = async () => {
             enabled: true,
         })
         .execute();
-    console.log('done');
 };

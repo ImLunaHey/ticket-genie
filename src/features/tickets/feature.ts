@@ -575,19 +575,15 @@ export class Feature {
         // Get the user's roles
         const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
 
+        // Get each of the categories
         const categories = await db
             .selectFrom('categories')
             .select('id')
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            .where(sql`
-                ${roles.map(role => sql`JSON_CONTAINS(requiredRoleIds, ${role.id})`)}
-            `)
-            .where(sql`
-                ${roles.map(role => sql`NOT JSON_CONTAINS(prohibitedRoleIds, ${role.id})`)}
-            `)
-            .groupBy('id')
+            .where(sql`prohibited_role_ids==JSON_ARRAY() OR NOT JSON_CONTAINS(${roles.map(role => role.id).join(',')}, prohibited_role_ids)`)
+            .where(sql`required_role_ids==JSON_ARRAY() OR JSON_CONTAINS(${roles.map(role => role.id).join(',')}, required_role_ids)`)
             .execute();
 
         // Show the dropdown menu

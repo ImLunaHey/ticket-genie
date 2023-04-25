@@ -582,8 +582,8 @@ export class Feature {
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            .where(sql`prohibited_role_ids==JSON_ARRAY() OR NOT JSON_CONTAINS(${roles.map(role => role.id).join(',')}, prohibited_role_ids)`)
-            .where(sql`required_role_ids==JSON_ARRAY() OR JSON_CONTAINS(${roles.map(role => role.id).join(',')}, required_role_ids)`)
+            .where(sql`prohibited_role_ids=JSON_ARRAY() OR NOT JSON_CONTAINS(${roles.map(role => role.id).join(',')}, prohibited_role_ids)`)
+            .where(sql`required_role_ids=JSON_ARRAY() OR JSON_CONTAINS(${roles.map(role => role.id).join(',')}, required_role_ids)`)
             .execute();
 
         // Show the dropdown menu

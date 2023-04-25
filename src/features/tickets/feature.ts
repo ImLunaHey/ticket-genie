@@ -1,9 +1,8 @@
 import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
-import type { ArgsOf } from 'discord.js';
 import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
-import type { TextChannel, User, GuildMemberRoleManager, Role, Guild } from 'discord.js';
+import type { TextChannel, User, GuildMemberRoleManager, Role, Guild, GuildMember } from 'discord.js';
 import { Collection } from 'discord.js';
 import {
     ChannelType,
@@ -452,7 +451,7 @@ export class Feature {
     @On({
         event: 'guildCreate'
     })
-    async guildCreate([guild]: ArgsOf<'guildCreate'>) {
+    async guildCreate([guild]: [Guild]) {
         this.logger.info('Added to server', {
             guildId: guild.id,
         });
@@ -505,7 +504,7 @@ export class Feature {
     @On({
         event: 'guildDelete'
     })
-    async guildDelete([guild]: ArgsOf<'guildDelete'>) {
+    async guildDelete([guild]: [Guild]) {
         this.logger.info('Removed from server', {
             guildId: String(guild.id),
         });
@@ -527,7 +526,7 @@ export class Feature {
     @On({
         event: 'guildMemberRemove'
     })
-    async guildMemberRemove([guildMember]: ArgsOf<'guildMemberRemove'>) {
+    async guildMemberRemove([guildMember]: [GuildMember]) {
         // Get all of the tickets for this guild member that're still open
         const tickets = await db
             .selectFrom('tickets')

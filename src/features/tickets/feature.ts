@@ -518,7 +518,7 @@ export class Feature {
                 title: 'Removed from server',
                 fields: [{
                     name: 'Server ID',
-                    value: guild.id,
+                    value: String(guild.id),
                 }]
             }]
         });

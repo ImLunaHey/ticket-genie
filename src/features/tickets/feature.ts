@@ -126,6 +126,27 @@ export class Feature {
         return results.map(result => result.status === 'fulfilled' ? result.value : undefined).filter(Boolean);
     }
 
+    async getTicketChannel(userId: string, guild: Guild, ticketId: string, categoryName: string, ticketNumber: number) {
+        // Get the ticket channel
+        const channelName = `${categoryName}-${ticketNumber}`.toLowerCase();
+        this.logger.info('Looking for channel', {
+            userId,
+            guildId: guild.id,
+            ticketId,
+            channelName
+        });
+
+        // Check if the channel is cached
+        const cachedChannel = guild.channels.cache.find(channel => channel.name === channelName) as TextChannel;
+
+        // Fetch the channels if we can't find it
+        if (!cachedChannel) await guild.channels.fetch();
+
+        // Check if we now have the channel
+        // If we don't then it doesn't exist or we can't see it
+        return cachedChannel || guild.channels.cache.find(channel => channel.name === channelName) as TextChannel;
+    }
+
     async setupChannels(guilds: Guild[]) {
         const botUserId = this.client.user?.id;
         if (!botUserId) throw new Error('Bot is still starting');
@@ -517,8 +538,7 @@ export class Feature {
                 .executeTakeFirstOrThrow();
 
             // Get the ticket channel
-            const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
-            const channel = guildMember.guild.channels.resolve(channelName) as TextChannel | undefined;
+            const channel = await this.getTicketChannel(guildMember.user.id, guildMember.guild, ticket.id, category.name, ticket.ticketNumber);
 
             // If the channel still exists try to delete it
             if (channel) {
@@ -892,24 +912,7 @@ export class Feature {
             ticketId: ticket.id,
         });
 
-        // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
-        this.logger.info('Looking for channel', {
-            userId: interaction.user.id,
-            guildId: interaction.guild.id,
-            ticketId: ticket.id,
-            channelName
-        });
 
-        // Check if the channel is cached
-        const cachedChannel = interaction.guild.channels.cache.find(channel => channel.name === channelName);
-
-        // Fetch the channels if we can't find it
-        if (!cachedChannel) await interaction.guild.channels.fetch();
-
-        // Check if we now have the channel
-        // If we don't then it doesn't exist or we can't see it
-        const channel = cachedChannel || interaction.guild.channels.cache.find(channel => channel.name === channelName);
 
         // Check that ticket admin message has been created
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
@@ -929,6 +932,9 @@ export class Feature {
                 components: [],
             });
         }
+
+        // Get the ticket channel
+        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
 
         // If the channel doesn't exist, just send the ticket closed message
         if (!channel) {
@@ -1009,8 +1015,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
-        const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
+        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
 
         // If the channel doesn't exist, just send the ticket closed message
         if (!channel) {
@@ -1119,8 +1124,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
-        const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
+        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
 
         // Check that ticket admin message has been created
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
@@ -1251,8 +1255,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
-        const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
+        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
 
         // Check if the ticket's channel still exists
         if (!channel) {

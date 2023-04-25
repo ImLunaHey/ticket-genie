@@ -466,12 +466,12 @@ export class Feature {
                     title: 'Added to server',
                     fields: [{
                         name: 'Server ID',
-                        value: guild.id,
+                        value: String(guild.id),
                     }]
                 }]
             });
         } catch (error: unknown) {
-            this.logger.error('Failed to message owner', error);
+            this.logger.error('Failed to message owner', { error });
         }
 
         try {
@@ -481,7 +481,7 @@ export class Feature {
                 content: 'Hi, please message <@784365843810222080> to help me get setup.',
             });
         } catch (error: unknown) {
-            this.logger.error('Failed to send setup message', error);
+            this.logger.error('Failed to send setup message', { error });
         }
 
         try {
@@ -495,7 +495,7 @@ export class Feature {
                 })
                 .execute();
         } catch (error: unknown) {
-            this.logger.error('Failed to add basic guild info to database', error);
+            this.logger.error('Failed to add basic guild info to database', { error });
         }
     }
 

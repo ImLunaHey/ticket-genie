@@ -1,7 +1,8 @@
 import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
-import { ArgsOf, ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
+import type { ArgsOf } from 'discord.js';
+import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
 import type { TextChannel, User, GuildMemberRoleManager, Role, Guild } from 'discord.js';
 import { Collection } from 'discord.js';
 import {

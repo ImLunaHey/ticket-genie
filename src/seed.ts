@@ -15,10 +15,10 @@ const json = <T>(value: T): RawBuilder<T> => sql`CAST(${JSON.stringify(value)} A
 export const seedDatabase = async () => {
     // This will seed data for luna's lobby
     // This should be removed before going stable
-    globalLogger.debug('Seeding database');
+    globalLogger.info('Seeding database');
 
     // Create the guild
-    globalLogger.debug('Creating the guild');
+    globalLogger.info('Creating the guild');
     await db
         .insertInto('guilds')
         .ignore()
@@ -30,7 +30,7 @@ export const seedDatabase = async () => {
         .execute();
 
     // Create the support category
-    globalLogger.debug('Creating the "support" category');
+    globalLogger.info('Creating the "support" category');
     const query = db
         .insertInto('categories')
         .ignore()
@@ -51,7 +51,7 @@ export const seedDatabase = async () => {
     await query.execute();
 
     // Create the verification category
-    globalLogger.debug('Creating the "verification" category');
+    globalLogger.info('Creating the "verification" category');
     await db
         .insertInto('categories')
         .ignore()
@@ -86,7 +86,7 @@ export const seedDatabase = async () => {
         .execute();
 
     // Create the main ticket panel in the "create-a-ticket" channel
-    globalLogger.debug('Creating a panel');
+    globalLogger.info('Creating a panel');
     await db
         .insertInto('panels')
         .ignore()

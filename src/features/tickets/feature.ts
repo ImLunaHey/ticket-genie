@@ -517,7 +517,7 @@ export class Feature {
                 .executeTakeFirstOrThrow();
 
             // Get the ticket channel
-            const channelName = `${category.name}-${ticket.ticketNumber}`;
+            const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
             const channel = guildMember.guild.channels.resolve(channelName) as TextChannel | undefined;
 
             // If the channel still exists try to delete it
@@ -1009,7 +1009,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`;
+        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
         const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
 
         // If the channel doesn't exist, just send the ticket closed message
@@ -1119,7 +1119,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`;
+        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
         const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
 
         // Check that ticket admin message has been created
@@ -1251,7 +1251,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channelName = `${category.name}-${ticket.ticketNumber}`;
+        const channelName = `${category.name}-${ticket.ticketNumber}`.toLowerCase();
         const channel = interaction.guild.channels.resolve(channelName) as TextChannel | undefined;
 
         // Check if the ticket's channel still exists

@@ -96,7 +96,9 @@ export const seedDatabase = async () => {
             id: ticketPanelId,
             buttonMessage: 'Create a ticket',
             channelId: '1085374793416712232',
-            managerRoleIds: json([]),
+            managerRoleIds: json([
+                '965591036711800842',
+            ]),
             categoryIds: json([
                 supportCategoryId,
                 verificationCategoryId,

@@ -457,32 +457,46 @@ export class Feature {
             guildId: guild.id,
         });
 
-        // Message owner
-        const owner = await this.client.users.fetch('784365843810222080');
-        if (!owner.dmChannel) await owner.createDM();
-        await owner.dmChannel?.send({
-            embeds: [{
-                title: 'Added to server',
-                fields: [{
-                    name: 'Server ID',
-                    value: guild.id,
+        try {
+            // Message owner
+            const owner = await this.client.users.fetch('784365843810222080');
+            if (!owner.dmChannel) await owner.createDM();
+            await owner.dmChannel?.send({
+                embeds: [{
+                    title: 'Added to server',
+                    fields: [{
+                        name: 'Server ID',
+                        value: guild.id,
+                    }]
                 }]
-            }]
-        });
+            });
+        } catch (error: unknown) {
+            this.logger.error('Failed to message owner', error);
+        }
 
-        const channel = [...guild.channels.cache.values()].filter(channel => channel.type === ChannelType.GuildText)[0] as TextChannel;
-        await channel.send({
-            content: 'Hi, please message <@784365843810222080> to help me get setup.',
-        });
+        try {
+            // Sending setup message
+            const channel = [...guild.channels.cache.values()].filter(channel => channel.type === ChannelType.GuildText)[0] as TextChannel;
+            await channel.send({
+                content: 'Hi, please message <@784365843810222080> to help me get setup.',
+            });
+        } catch (error: unknown) {
+            this.logger.error('Failed to send setup message', error);
+        }
 
-        // Add basic info about guild to database
-        await db
-            .insertInto('guilds')
-            .values({
-                id: guild.id,
-                ticketNumber: 0,
-            })
-            .execute();
+        try {
+            // Add basic info about guild to database
+            await db
+                .insertInto('guilds')
+                .ignore()
+                .values({
+                    id: guild.id,
+                    ticketNumber: 0,
+                })
+                .execute();
+        } catch (error: unknown) {
+            this.logger.error('Failed to add basic guild info to database', error);
+        }
     }
 
     @On({

@@ -23,6 +23,7 @@ import { GuildMember } from 'discord.js';
 import { db } from '@app/common/database';
 import { randomUUID } from 'crypto';
 import { setTimeout } from 'timers/promises';
+import { sql } from 'kysely';
 
 type MyObject<T = Record<string, unknown>> = {
     phrase: string;
@@ -574,15 +575,19 @@ export class Feature {
         // Get the user's roles
         const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
 
-        // Get all the categories
         const categories = await db
             .selectFrom('categories')
             .select('id')
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            .where('requiredRoleIds', 'in', roles.map(role => role.id))
-            .where('prohibitedRoleIds', 'not in', roles.map(role => role.id))
+            .where(sql`
+                ${roles.map(role => sql`JSON_CONTAINS(requiredRoleIds, ${role.id})`)}
+            `)
+            .where(sql`
+                ${roles.map(role => sql`NOT JSON_CONTAINS(prohibitedRoleIds, ${role.id})`)}
+            `)
+            .groupBy('id')
             .execute();
 
         // Show the dropdown menu

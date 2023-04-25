@@ -475,6 +475,9 @@ export class Feature {
         }
 
         try {
+            // If we don't have any of the channels cached fetch them
+            if (!guild.channels.cache) await guild.channels.fetch();
+
             // Sending setup message
             const channel = [...guild.channels.cache.values()].filter(channel => channel.type === ChannelType.GuildText)[0] as TextChannel;
             await channel.send({
@@ -504,7 +507,7 @@ export class Feature {
     })
     async guildDelete(guild: Guild) {
         this.logger.info('Removed from server', {
-            guildId: guild.id,
+            guildId: String(guild.id),
         });
 
         // Message owner

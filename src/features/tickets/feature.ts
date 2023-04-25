@@ -1,9 +1,9 @@
 import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
-import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
-import type { TextChannel, User, GuildMemberRoleManager, Role } from 'discord.js';
-import { Guild, Collection } from 'discord.js';
+import { ArgsOf, ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
+import type { TextChannel, User, GuildMemberRoleManager, Role, Guild } from 'discord.js';
+import { Collection } from 'discord.js';
 import {
     ChannelType,
     ActionRowBuilder,
@@ -19,7 +19,6 @@ import {
     EmbedBuilder,
     DiscordAPIError
 } from 'discord.js';
-import { GuildMember } from 'discord.js';
 import { db } from '@app/common/database';
 import { randomUUID } from 'crypto';
 import { setTimeout } from 'timers/promises';
@@ -452,7 +451,7 @@ export class Feature {
     @On({
         event: 'guildCreate'
     })
-    async guildCreate(guild: Guild) {
+    async guildCreate([guild]: ArgsOf<'guildCreate'>) {
         this.logger.info('Added to server', {
             guildId: guild.id,
         });
@@ -505,7 +504,7 @@ export class Feature {
     @On({
         event: 'guildDelete'
     })
-    async guildDelete(guild: Guild) {
+    async guildDelete([guild]: ArgsOf<'guildDelete'>) {
         this.logger.info('Removed from server', {
             guildId: String(guild.id),
         });
@@ -527,7 +526,7 @@ export class Feature {
     @On({
         event: 'guildMemberRemove'
     })
-    async guildMemberRemove(guildMember: GuildMember) {
+    async guildMemberRemove([guildMember]: ArgsOf<'guildMemberRemove'>) {
         // Get all of the tickets for this guild member that're still open
         const tickets = await db
             .selectFrom('tickets')

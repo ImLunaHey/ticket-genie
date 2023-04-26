@@ -609,10 +609,17 @@ export class Feature {
         const panelId = parse('create-a-ticket', interaction.customId).uuid;
 
         // Get the user's roles
-        const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
+        const roleIds = await resolveRoles(interaction.guild, interaction.member?.roles).then(roles => roles.map(role => role.id));
+
+        this.logger.info('Fetching categories for user', {
+            userId: interaction.user.id,
+            guildId: interaction.guild.id,
+            panelId,
+            roles: roleIds,
+        });
 
         // Get each of the categories
-        const categories = db
+        const categories = await db
             .selectFrom('categories')
             .select('id')
             .select('name')
@@ -623,10 +630,10 @@ export class Feature {
                     cmpr('prohibitedRoleIds', '=', sql`JSON_ARRAY()`),
                     not(
                         or([
-                            ...roles.map(
-                                (role) =>
+                            ...roleIds.map(
+                                roleId =>
                                     sql<boolean>`JSON_CONTAINS(prohibited_role_ids, ${JSON.stringify([
-                                        role.id,
+                                        roleId,
                                     ])})`,
                             ),
                         ]),
@@ -636,10 +643,10 @@ export class Feature {
             .where(({ or, cmpr }) =>
                 or([
                     cmpr('requiredRoleIds', '=', sql`JSON_ARRAY()`),
-                    ...roles.map(
-                        (role) =>
+                    ...roleIds.map(
+                        roleId =>
                             sql<boolean>`JSON_CONTAINS(required_role_ids, ${JSON.stringify([
-                                role.id,
+                                roleId,
                             ])})`,
                     ),
                 ]),

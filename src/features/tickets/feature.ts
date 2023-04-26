@@ -625,13 +625,14 @@ export class Feature {
             // The user needs at least one required role
             .where(sql`(required_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(required_role_ids, ${JSON.stringify([role.id])})`).join(' OR ')})`);
 
+        const categories = await query.execute();
+
         const data = query.compile();
         this.logger.info('Fetching categories', {
             query: data.sql,
             params: data.parameters,
+            categories,
         });
-
-        const categories = await query.execute();
 
         // Show the dropdown menu
         await interaction.editReply({

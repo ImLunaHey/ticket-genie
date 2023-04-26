@@ -14,6 +14,7 @@ export const globalLogger = winston.createLogger({
     }),
     defaultMeta: {
         botName: pkg.name,
+        pid: process.pid,
     },
     transports: [],
 });

@@ -612,7 +612,7 @@ export class Feature {
         const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
 
         // Get each of the categories
-        const categories = await db
+        const query = db
             .selectFrom('categories')
             .select('id')
             .select('name')
@@ -623,8 +623,15 @@ export class Feature {
             // The user needs all required roles
             // .where(sql`required_role_ids=JSON_ARRAY() OR JSON_CONTAINS(${JSON.stringify(roles.map(role => role.id))}, required_role_ids)`)
             // The user needs at least one required role
-            .where(sql`(required_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(required_role_ids, ${JSON.stringify([role.id])})`).join(' OR ')})`)
-            .execute();
+            .where(sql`(required_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(required_role_ids, ${JSON.stringify([role.id])})`).join(' OR ')})`);
+
+        const data = query.compile();
+        this.logger.info('Fetching categories', {
+            query: data.sql,
+            params: data.parameters,
+        });
+
+        const categories = await query.execute();
 
         // Show the dropdown menu
         await interaction.editReply({

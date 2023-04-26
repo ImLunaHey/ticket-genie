@@ -612,25 +612,43 @@ export class Feature {
         const roles = await resolveRoles(interaction.guild, interaction.member?.roles);
 
         // Get each of the categories
-        const query = db
+        const categories = db
             .selectFrom('categories')
             .select('id')
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            // The user cannot have any prohibited roles
-            // .where(sql`(prohibited_role_ids=JSON_ARRAY() OR NOT (${roles.map(role => `JSON_CONTAINS(prohibited_role_ids, '${JSON.stringify([role.id])}')`).join(' OR ')}))`)
-            // The user needs all required roles
-            // .where(sql`required_role_ids=JSON_ARRAY() OR JSON_CONTAINS(${JSON.stringify(roles.map(role => role.id))}, required_role_ids)`)
-            // The user needs at least one required role
-            .where(sql`(required_role_ids=JSON_ARRAY() OR (${roles.map(role => `JSON_CONTAINS(required_role_ids, '${JSON.stringify([role.id])}')`).join(' OR ')}))`);
+            .where(({ or, cmpr, not }) =>
+                or([
+                    cmpr('prohibitedRoleIds', '=', sql`JSON_ARRAY()`),
+                    not(
+                        or([
+                            ...roles.map(
+                                (role) =>
+                                    sql<boolean>`JSON_CONTAINS(prohibited_role_ids, ${JSON.stringify([
+                                        role.id,
+                                    ])})`,
+                            ),
+                        ]),
+                    ),
+                ]),
+            )
+            .where(({ or, cmpr }) =>
+                or([
+                    cmpr('requiredRoleIds', '=', sql`JSON_ARRAY()`),
+                    ...roles.map(
+                        (role) =>
+                            sql<boolean>`JSON_CONTAINS(required_role_ids, ${JSON.stringify([
+                                role.id,
+                            ])})`,
+                    ),
+                ]),
+            )
+            .execute();
 
-        const categories = await query.execute();
-
-        const data = query.compile();
-        this.logger.info('Fetching categories', {
-            query: data.sql,
-            params: data.parameters,
+        this.logger.info('Fetched categories for user', {
+            userId: interaction.user.id,
+            guildId: interaction.guild.id,
             categories,
         });
 

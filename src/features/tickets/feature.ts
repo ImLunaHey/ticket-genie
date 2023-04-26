@@ -618,9 +618,11 @@ export class Feature {
             .select('name')
             .where('panelId', '=', panelId)
             .where('enabled', '=', true)
-            .where(sql`prohibited_role_ids=JSON_ARRAY() OR NOT JSON_CONTAINS(${JSON.stringify(roles.map(role => role.id))}, prohibited_role_ids)`)
+            // The user needs at least one required role
+            .where(sql`(prohibited_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(prohibited_role_ids, ${JSON.stringify([role.id])})`).join(' OR ')})`)
+            // The user needs all required roles
             // .where(sql`required_role_ids=JSON_ARRAY() OR JSON_CONTAINS(${JSON.stringify(roles.map(role => role.id))}, required_role_ids)`)
-            .where(sql`required_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(${JSON.stringify([role.id])}, required_role_ids)`).join(' OR ')}`)
+            .where(sql`(required_role_ids=JSON_ARRAY() OR ${roles.map(role => `JSON_CONTAINS(required_role_ids, ${JSON.stringify([role.id])})`).join(' OR ')})`)
             .execute();
 
         // Show the dropdown menu

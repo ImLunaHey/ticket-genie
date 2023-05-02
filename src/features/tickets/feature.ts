@@ -458,15 +458,19 @@ export class Feature {
             fields: [{
                 name: 'ID',
                 value: ticketId,
+                inline: true,
             }, {
                 name: 'Created by',
                 value: `<@${createdById}>`,
+                inline: true,
             }, {
                 name: 'Claimed by',
                 value: claimedById ? `<@${claimedById}>` : '\u200b',
+                inline: true,
             }, {
                 name: 'Status',
                 value: `${status.toLowerCase()[0].toUpperCase()}${status.toLowerCase().substring(1, status.length)}`,
+                inline: true,
             }],
             description: note,
             footer: {

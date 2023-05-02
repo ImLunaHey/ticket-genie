@@ -161,7 +161,7 @@ type Ticket = {
     ownerId: string;
 
     // The staff member who claimed this ticket
-    claimedById?: string;
+    claimedById: ColumnType<string, string | null, string | null>;
 
     // The staff members who have been pulled
     // into this ticket who aren't the claimer

@@ -2,7 +2,7 @@ import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
-import type { TextChannel, User, GuildMemberRoleManager, Role, Guild, GuildMember } from 'discord.js';
+import { TextChannel, User, GuildMemberRoleManager, Role, Guild, GuildMember, Message } from 'discord.js';
 import { Collection } from 'discord.js';
 import {
     ChannelType,
@@ -23,6 +23,7 @@ import { db } from '@app/common/database';
 import { randomUUID } from 'crypto';
 import { setTimeout } from 'timers/promises';
 import { sql } from 'kysely';
+import { MessagePayload } from 'discord.js';
 
 type MyObject<T = Record<string, unknown>> = {
     phrase: string;
@@ -428,6 +429,87 @@ export class Feature {
         }
     }
 
+    generateAdminTicketMessage({
+        categoryName,
+        status,
+        createdById,
+        claimedById,
+        ticketId,
+        ticketNumber,
+        note,
+    }: {
+        categoryName: string;
+        status: 'OPEN' | 'CLOSED' | 'PENDING';
+        createdById: string;
+        claimedById?: string;
+        ticketId: string;
+        ticketNumber: number;
+        note?: string;
+    }) {
+        const color = {
+            OPEN: Colors.Green,
+            CLOSED: Colors.Grey,
+            PENDING: Colors.Yellow,
+        }[status];
+
+        const embed = new EmbedBuilder({
+            title: categoryName,
+            color: color ?? Colors.White,
+            fields: [{
+                name: 'ID',
+                value: ticketId,
+            }, {
+                name: 'Created by',
+                value: `<@${createdById}>`,
+            }, {
+                name: 'Claimed by',
+                value: claimedById ? `<@${claimedById}>` : '\u200b',
+            }, {
+                name: 'Status',
+                value: `${status.toLowerCase()[0].toUpperCase()}${status.toLowerCase().substring(1, status.length)}`,
+            }],
+            description: note,
+            footer: {
+                text: `Ticket #${ticketNumber}`,
+            },
+        });
+
+        const components = status === 'CLOSED' ? [
+            new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('open-ticket', ticketId))
+                        .setLabel('Open ticket')
+                        .setEmoji('🔓')
+                        .setStyle(ButtonStyle.Secondary),
+                )
+        ] : [
+            new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('close-and-save-ticket', ticketId, { action: 'reply' }))
+                        .setLabel('Close and save transcript')
+                        .setEmoji('💾')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('close-ticket', ticketId))
+                        .setLabel('Close ticket')
+                        .setEmoji('🔒')
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('claim-ticket', ticketId))
+                        .setLabel('Claim ticket')
+                        .setEmoji('🙋‍♀️')
+                        .setStyle(ButtonStyle.Success),
+                )
+        ];
+
+        return {
+            embeds: [embed],
+            components,
+        };
+    }
+
     @On({
         event: 'ready',
     })
@@ -569,17 +651,14 @@ export class Feature {
             // Update the ticket admin message
             const message = await (guildMember.guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).messages.fetch(ticket.ticketAdminMessageId);
             if (message) {
-                await message.edit({
-                    embeds: [{
-                        title: 'Closed ticket',
-                        description: `Ticket #${ticket.ticketNumber} has been closed as the member has left the server.`,
-                        color: Colors.Aqua,
-                        footer: {
-                            text: `Ticket #${ticket.ticketNumber}`,
-                        },
-                    }],
-                    components: [],
-                });
+                await message.edit(this.generateAdminTicketMessage({
+                    categoryName: category.name,
+                    createdById: guildMember.id,
+                    status: 'CLOSED',
+                    note: 'Ticket was closed as the member has left the server.',
+                    ticketId: ticket.id,
+                    ticketNumber: ticket.ticketNumber,
+                }));
             }
 
             // Update the database
@@ -822,45 +901,13 @@ export class Feature {
         });
 
         // Create a message for the staff to see
-        const ticketAdminMessage = await (guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).send({
-            embeds: [{
-                title: category.name,
-                color: Colors.Green,
-                fields: [{
-                    name: 'ID',
-                    value: ticketId,
-                }, {
-                    name: 'Created by',
-                    value: `<@${user.id}>`,
-                }, {
-                    name: 'Status',
-                    value: 'Pending'
-                }],
-                footer: {
-                    text: `Ticket #${ticketNumber}`,
-                },
-            }],
-            components: [
-                new ActionRowBuilder<ButtonBuilder>()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(generateInputString('close-and-save-ticket', ticketId, { action: 'reply' }))
-                            .setLabel('Close and save transcript')
-                            .setEmoji('💾')
-                            .setStyle(ButtonStyle.Primary),
-                        new ButtonBuilder()
-                            .setCustomId(generateInputString('close-ticket', ticketId))
-                            .setLabel('Close ticket')
-                            .setEmoji('🔒')
-                            .setStyle(ButtonStyle.Secondary),
-                        new ButtonBuilder()
-                            .setCustomId(generateInputString('claim-ticket', ticketId))
-                            .setLabel('Claim ticket')
-                            .setEmoji('🙋‍♀️')
-                            .setStyle(ButtonStyle.Success),
-                    )
-            ],
-        });
+        const ticketAdminMessage = await (guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).send(this.generateAdminTicketMessage({
+            categoryName: category.name,
+            createdById: user.id,
+            status: 'PENDING',
+            ticketId,
+            ticketNumber,
+        }));
 
         // Update the "ticket admin message ID" on the ticket
         await db
@@ -933,6 +980,8 @@ export class Feature {
         const ticket = await db
             .selectFrom('tickets')
             .select('id')
+            .select('ownerId')
+            .select('claimedById')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
             .select('categoryId')
@@ -964,26 +1013,20 @@ export class Feature {
             ticketId: ticket.id,
         });
 
-
-
         // Check that ticket admin message has been created
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
 
         // Update the tickets channel
         const message = await (interaction.guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).messages.fetch(ticket.ticketAdminMessageId);
-        if (message) {
-            await message.edit({
-                embeds: [{
-                    title: 'Closed ticket',
-                    description: `Ticket #${ticket.ticketNumber} has been closed by <@${interaction.user.id}>`,
-                    color: Colors.Aqua,
-                    footer: {
-                        text: `Ticket #${ticket.ticketNumber}`,
-                    },
-                }],
-                components: [],
-            });
-        }
+        await message?.edit(this.generateAdminTicketMessage({
+            categoryName: category.name,
+            createdById: ticket.ownerId,
+            status: 'CLOSED',
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            claimedById: ticket.claimedById,
+            note: `Ticket was closed by <@${interaction.user.id}>`
+        }));
 
         // Get the ticket channel
         const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
@@ -1146,10 +1189,29 @@ export class Feature {
             ticketId,
         });
 
+        // Get the staff member's claimed ticket count
+        const claimedTickets = await db
+            .selectFrom('tickets')
+            .select(db.fn.count<number>('id').as('count'))
+            .where('claimedById', '=', interaction.user.id)
+            .executeTakeFirst()
+            .then(row => row?.count ?? 0);
+
+        // Check if the staff member has too many claimed tickets
+        if (claimedTickets >= 5) {
+            await interaction.editReply({
+                content: 'You can only claim 5 tickets at at time',
+                components: [],
+            });
+            return;
+        }
+
         // Get the ticket
         const ticket = await db
             .selectFrom('tickets')
             .select('id')
+            .select('ownerId')
+            .select('claimedById')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
             .select('categoryId')
@@ -1181,43 +1243,6 @@ export class Feature {
         // Check that ticket admin message has been created
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
 
-        // Update the admin ticket
-        const message = await (interaction.guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).messages.fetch(ticket.ticketAdminMessageId);
-
-        if (message) {
-            await message.edit({
-                embeds: [{
-                    title: 'Claimed ticket',
-                    description: `Ticket #${ticket.ticketNumber} has been claimed by <@${interaction.user.id}>`,
-                    color: Colors.Aqua,
-                    footer: {
-                        text: `Ticket #${ticket.ticketNumber}`,
-                    },
-                }],
-                components: [
-                    new ActionRowBuilder<ButtonBuilder>()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(generateInputString('close-and-save-ticket', ticket.id, { action: 'reply' }))
-                                .setLabel('Close & save')
-                                .setEmoji('💾')
-                                .setStyle(ButtonStyle.Primary),
-                            new ButtonBuilder()
-                                .setCustomId(generateInputString('close-ticket', ticket.id))
-                                .setLabel('Close ticket')
-                                .setEmoji('🔒')
-                                .setStyle(ButtonStyle.Secondary),
-                            new ButtonBuilder()
-                                .setCustomId(generateInputString('claim-ticket', ticket.id))
-                                .setLabel(`Claimed by ${interaction.user.username}`)
-                                .setEmoji('🙋‍♀️')
-                                .setDisabled(true)
-                                .setStyle(ButtonStyle.Secondary),
-                        )
-                ],
-            });
-        }
-
         // Check if the ticket's channel still exists
         if (!channel) {
             // Reply with an error message
@@ -1237,6 +1262,26 @@ export class Feature {
             return;
         }
 
+        // Update the database
+        await db
+            .updateTable('tickets')
+            .set({
+                claimedById: interaction.user.id,
+            })
+            .where('id', '=', ticket.id)
+            .execute();
+
+        // Update the admin ticket
+        const message = await (interaction.guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).messages.fetch(ticket.ticketAdminMessageId);
+        await message?.edit(this.generateAdminTicketMessage({
+            categoryName: category.name,
+            createdById: ticket.ownerId,
+            status: 'OPEN',
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            claimedById: interaction.user.id,
+        }));
+
         this.logger.info('Claiming ticket', {
             userId: interaction.user.id,
             guildId: interaction.guild.id,
@@ -1251,9 +1296,8 @@ export class Feature {
         });
 
         // Delete the unclaimed ticket message
-        const messages2 = await channel.messages.fetch({ limit: 100 });
-        const message2 = messages2.find(message => message.embeds[0]?.title === 'Ticket unclaimed');
-        if (message2) await message2.delete();
+        const unclaimedTicketMessage = await channel.messages.fetch({ limit: 100 }).then(messages => messages.find(message => message.embeds[0]?.title === 'Ticket unclaimed'));
+        if (unclaimedTicketMessage) await unclaimedTicketMessage.delete();
 
         // Let the user know the ticket has been claimed
         await channel.send({
@@ -1335,9 +1379,17 @@ export class Feature {
         // TODO: Fix this
         await channel.permissionOverwrites.cache.find(override => override.id === interaction.user.id)?.delete();
 
+        // Update the database
+        await db
+            .updateTable('tickets')
+            .set({
+                claimedById: null,
+            })
+            .where('id', '=', ticket.id)
+            .execute();
+
         // Update the admin ticket
         const message = await (interaction.guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).messages.fetch(ticket.ticketAdminMessageId);
-
         if (message) {
             await message.edit({
                 embeds: [{
@@ -1453,7 +1505,7 @@ export class Feature {
         await interaction.editReply({
             embeds: [{
                 title: 'Staff tools',
-                description: `Hey ${interaction.user.username}, what would you like to do with ticket #${ticket.ticketNumber}?`,
+                description: `Hey ${interaction.user.username}, what would you like to do with this ticket?`,
             }],
             components: [
                 new ActionRowBuilder<ButtonBuilder>()

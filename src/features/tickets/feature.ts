@@ -2,7 +2,7 @@ import '@total-typescript/ts-reset';
 import { client } from '@app/client';
 import { globalLogger } from '@app/logger';
 import { ButtonComponent, Discord, On, SelectMenuComponent } from 'discordx';
-import { TextChannel, User, GuildMemberRoleManager, Role, Guild, GuildMember, Message } from 'discord.js';
+import type { TextChannel, User, GuildMemberRoleManager, Role, Guild, GuildMember } from 'discord.js';
 import { Collection } from 'discord.js';
 import {
     ChannelType,
@@ -23,7 +23,6 @@ import { db } from '@app/common/database';
 import { randomUUID } from 'crypto';
 import { setTimeout } from 'timers/promises';
 import { sql } from 'kysely';
-import { MessagePayload } from 'discord.js';
 
 type MyObject<T = Record<string, unknown>> = {
     phrase: string;
@@ -510,6 +509,7 @@ export class Feature {
                         .setEmoji('🔒')
                         .setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder()
+                        .setCustomId(generateInputString('unclaim-ticket', ticketId))
                         .setDisabled(true)
                         .setLabel('Ticket claimed')
                         .setEmoji('🙋‍♀️')

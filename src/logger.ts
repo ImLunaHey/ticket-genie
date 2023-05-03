@@ -3,6 +3,7 @@ import { WinstonTransport as AxiomTransport } from '@axiomhq/axiom-node';
 import chalk from 'chalk';
 import { serializeError } from 'serialize-error';
 import * as pkg from '@app/../package.json';
+import { getCommitHash } from '@app/common/get-commit-hash';
 
 export const globalLogger = winston.createLogger({
     level: 'info',
@@ -15,6 +16,7 @@ export const globalLogger = winston.createLogger({
     defaultMeta: {
         botName: pkg.name,
         pid: process.pid,
+        commitHash: getCommitHash(),
     },
     transports: [],
 });

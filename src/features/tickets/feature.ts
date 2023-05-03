@@ -463,7 +463,7 @@ export class Feature {
                 value: `<@${createdById}>`,
                 inline: true,
             }, {
-                name: 'Claimed by',
+                name: claimedById ? 'Claimed by' : '\u200b',
                 value: claimedById ? `<@${claimedById}>` : '\u200b',
                 inline: true,
             }, {

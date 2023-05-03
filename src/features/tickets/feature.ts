@@ -478,17 +478,8 @@ export class Feature {
             },
         });
 
-        const components = status === 'CLOSED' ? [
-            new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(generateInputString('open-ticket', ticketId))
-                        .setLabel('Open ticket')
-                        .setEmoji('🔓')
-                        .setStyle(ButtonStyle.Secondary),
-                )
-        ] : [
-            new ActionRowBuilder<ButtonBuilder>()
+        const components = {
+            OPEN: new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId(generateInputString('close-and-save-ticket', ticketId, { action: 'reply' }))
@@ -505,12 +496,37 @@ export class Feature {
                         .setLabel('Claim ticket')
                         .setEmoji('🙋‍♀️')
                         .setStyle(ButtonStyle.Success),
-                )
-        ];
-
+                ),
+            PENDING: new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('close-and-save-ticket', ticketId, { action: 'reply' }))
+                        .setLabel('Close and save transcript')
+                        .setEmoji('💾')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('close-ticket', ticketId))
+                        .setLabel('Close ticket')
+                        .setEmoji('🔒')
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('claim-ticket', ticketId))
+                        .setLabel('Claim ticket')
+                        .setEmoji('🙋‍♀️')
+                        .setStyle(ButtonStyle.Success),
+                ),
+            CLOSED: new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(generateInputString('open-ticket', ticketId))
+                        .setLabel('Open ticket')
+                        .setEmoji('🔓')
+                        .setStyle(ButtonStyle.Secondary),
+                ),
+        };
         return {
             embeds: [embed],
-            components,
+            components: [components[status]],
         };
     }
 
@@ -908,7 +924,7 @@ export class Feature {
         const ticketAdminMessage = await (guild.channels.cache.get(category.ticketAdminChannelId) as TextChannel).send(this.generateAdminTicketMessage({
             categoryName: category.name,
             createdById: user.id,
-            status: 'PENDING',
+            status: 'OPEN',
             ticketId,
             ticketNumber,
         }));
@@ -1280,7 +1296,7 @@ export class Feature {
         await message?.edit(this.generateAdminTicketMessage({
             categoryName: category.name,
             createdById: ticket.ownerId,
-            status: 'OPEN',
+            status: 'PENDING',
             ticketId: ticket.id,
             ticketNumber: ticket.ticketNumber,
             claimedById: interaction.user.id,

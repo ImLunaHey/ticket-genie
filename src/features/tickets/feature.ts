@@ -510,8 +510,8 @@ export class Feature {
                         .setEmoji('🔒')
                         .setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder()
-                        .setCustomId(generateInputString('claim-ticket', ticketId))
-                        .setLabel('Claim ticket')
+                        .setDisabled(true)
+                        .setLabel('Ticket claimed')
                         .setEmoji('🙋‍♀️')
                         .setStyle(ButtonStyle.Success),
                 ),

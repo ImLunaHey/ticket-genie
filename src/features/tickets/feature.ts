@@ -1201,9 +1201,9 @@ export class Feature {
             .then(row => row?.count ?? 0);
 
         // Check if the staff member has too many claimed tickets
-        if (claimedTickets >= 5) {
+        if (claimedTickets >= 10) {
             await interaction.editReply({
-                content: 'You can only claim 5 tickets at a time',
+                content: 'You can only claim 10 tickets at a time on the free plan',
                 components: [],
             });
             return;

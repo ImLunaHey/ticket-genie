@@ -6,6 +6,7 @@
     "postinstall": "npx patch-package",
     "build": "npx tsup ./src/main.ts --treeshake --minify",
     "dev": "npx tsup ./src/main.ts --onSuccess=\"NODE_ENV=development node dist/main.cjs\" --watch",
+    "create:migration": "touch \"./src/migrations/$(node -e 'console.log(new Date().getTime())').ts\"",
     "start": "node dist/main.cjs",
     "test": "exit 0;",
     "//test": "dotenv -e .env.test -- npx jest --detectOpenHandles",

@@ -167,6 +167,9 @@ type Ticket = {
     // into this ticket who aren't the claimer
     staffMemberIds?: ColumnType<string[], RawBuilder<string[]>, RawBuilder<string[]>>;
 
+    // The channel ID
+    channelId?: string;
+
     // The discord snowflake of the "ticket admin" message
     ticketAdminMessageId?: string;
 };

@@ -125,27 +125,6 @@ export class Feature {
         return results.map(result => result.status === 'fulfilled' ? result.value : undefined).filter(Boolean);
     }
 
-    async getTicketChannel(userId: string, guild: Guild, ticketId: string, categoryName: string, ticketNumber: number) {
-        // Get the ticket channel
-        const channelName = `${categoryName}-${ticketNumber}`.toLowerCase();
-        this.logger.info('Looking for channel', {
-            userId,
-            guildId: guild.id,
-            ticketId,
-            channelName
-        });
-
-        // Check if the channel is cached
-        const cachedChannel = guild.channels.cache.find(channel => channel.name === channelName) as TextChannel;
-
-        // Fetch the channels if we can't find it
-        if (!cachedChannel) await guild.channels.fetch();
-
-        // Check if we now have the channel
-        // If we don't then it doesn't exist or we can't see it
-        return cachedChannel || guild.channels.cache.find(channel => channel.name === channelName) as TextChannel;
-    }
-
     async setupChannels(guilds: Guild[]) {
         const botUserId = this.client.user?.id;
         if (!botUserId) throw new Error('Bot is still starting');
@@ -633,11 +612,13 @@ export class Feature {
         const tickets = await db
             .selectFrom('tickets')
             .select('id')
+            .select('channelId')
             .select('categoryId')
             .select('ticketNumber')
             .select('ticketAdminMessageId')
             .where('tickets.ownerId', '=', guildMember.id)
             .where('guildId', '=', guildMember.guild.id)
+            .where('state', '=', 'OPEN')
             .execute();
 
         // Close each ticket
@@ -656,12 +637,12 @@ export class Feature {
                 .executeTakeFirstOrThrow();
 
             // Get the ticket channel
-            const channel = await this.getTicketChannel(guildMember.user.id, guildMember.guild, ticket.id, category.name, ticket.ticketNumber);
+            const ticketChannel = ticket.channelId ? (guildMember.guild.channels.cache.get(ticket.channelId) ?? await guildMember.guild.channels.fetch(ticket.channelId)) : null;
 
             // If the channel still exists try to delete it
-            if (channel) {
+            if (ticketChannel) {
                 try {
-                    await channel.delete();
+                    await ticketChannel.delete();
                 } catch { }
             }
 
@@ -849,26 +830,10 @@ export class Feature {
             .where('id', '=', categoryId)
             .executeTakeFirstOrThrow();
 
-        // Save the ticket to the database
-        const ticketId = randomUUID();
-        await db
-            .insertInto('tickets')
-            .values({
-                id: ticketId,
-                guildId: guild.id,
-                ownerId: user.id,
-                categoryId,
-                ticketNumber,
-                state: 'OPEN',
-                panelId: category.panelId,
-            })
-            .execute();
-
-        this.logger.info('Creating ticket', {
+        this.logger.info('Creating ticket channel', {
             userId: user.id,
             guildId: guild.id,
             ticketNumber,
-            ticketId,
         });
 
         // Create the channel
@@ -912,6 +877,22 @@ export class Feature {
                 }
             ],
         });
+
+        // Save the ticket to the database
+        const ticketId = randomUUID();
+        await db
+            .insertInto('tickets')
+            .values({
+                id: ticketId,
+                guildId: guild.id,
+                ownerId: user.id,
+                categoryId,
+                ticketNumber,
+                state: 'OPEN',
+                panelId: category.panelId,
+                channelId: channel.id,
+            })
+            .execute();
 
         this.logger.info('Creating ticket admin message', {
             userId: user.id,
@@ -1001,6 +982,7 @@ export class Feature {
             .selectFrom('tickets')
             .select('id')
             .select('ownerId')
+            .select('channelId')
             .select('claimedById')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
@@ -1049,10 +1031,10 @@ export class Feature {
         }));
 
         // Get the ticket channel
-        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
+        const ticketChannel = ticket.channelId ? (message.guild.channels.cache.get(ticket.channelId) ?? await message.guild.channels.fetch(ticket.channelId)) : null;
 
         // If the channel doesn't exist, just send the ticket closed message
-        if (!channel) {
+        if (!ticketChannel) {
             // Send the ticket closed message
             await interaction.editReply({
                 content: `Ticket #${ticket.ticketNumber} has been closed.`,
@@ -1072,11 +1054,11 @@ export class Feature {
 
         try {
             // Delete the channel
-            await channel.delete();
+            await ticketChannel.delete();
         } catch { }
 
         // Send the ticket closed message
-        if (interaction.channelId !== channel.id) {
+        if (interaction.channelId !== ticketChannel.id) {
             await interaction.editReply({
                 content: `Ticket #${ticket.ticketNumber} has been closed.`,
                 components: [],
@@ -1115,6 +1097,7 @@ export class Feature {
         const ticket = await db
             .selectFrom('tickets')
             .select('id')
+            .select('channelId')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
             .select('categoryId')
@@ -1130,10 +1113,10 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
+        const ticketChannel = ticket.channelId ? ((interaction.guild.channels.cache.get(ticket.channelId) ?? await interaction.guild.channels.fetch(ticket.channelId)) as TextChannel | null) : null;
 
         // If the channel doesn't exist, just send the ticket closed message
-        if (!channel) {
+        if (!ticketChannel) {
             // Send the ticket closed message
             await interaction.editReply({
                 content: `Ticket #${ticket.ticketNumber} has already been closed.`,
@@ -1146,7 +1129,7 @@ export class Feature {
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
 
         // Get the ticket messages
-        const messages = await channel.messages.fetch({ limit: 100 });
+        const messages = await ticketChannel.messages.fetch({ limit: 100 });
 
         // Create the transcript
         const transcript = messages
@@ -1231,6 +1214,7 @@ export class Feature {
             .selectFrom('tickets')
             .select('id')
             .select('ownerId')
+            .select('channelId')
             .select('claimedById')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
@@ -1258,13 +1242,13 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
+        const ticketChannel = ticket.channelId ? ((interaction.guild.channels.cache.get(ticket.channelId) ?? await interaction.guild.channels.fetch(ticket.channelId)) as TextChannel | null) : null;
 
         // Check that ticket admin message has been created
         if (!ticket.ticketAdminMessageId) throw new Error('Ticket is still being created');
 
         // Check if the ticket's channel still exists
-        if (!channel) {
+        if (!ticketChannel) {
             // Reply with an error message
             await interaction.editReply({
                 embeds: [
@@ -1309,18 +1293,18 @@ export class Feature {
         });
 
         // Update the channel permissions
-        await channel.permissionOverwrites.edit(interaction.user.id, {
+        await ticketChannel.permissionOverwrites.edit(interaction.user.id, {
             ViewChannel: true,
             SendMessages: true,
             ReadMessageHistory: true,
         });
 
         // Delete the unclaimed ticket message
-        const unclaimedTicketMessage = await channel.messages.fetch({ limit: 100 }).then(messages => messages.find(message => message.embeds[0]?.title === 'Ticket unclaimed'));
+        const unclaimedTicketMessage = await ticketChannel.messages.fetch({ limit: 100 }).then(messages => messages.find(message => message.embeds[0]?.title === 'Ticket unclaimed'));
         if (unclaimedTicketMessage) await unclaimedTicketMessage.delete();
 
         // Let the user know the ticket has been claimed
-        await channel.send({
+        await ticketChannel.send({
             content: '@here',
             embeds: [
                 new EmbedBuilder()
@@ -1333,7 +1317,7 @@ export class Feature {
 
         // Send the ticket claimed message
         await interaction.editReply({
-            content: `Ticket #${ticket.ticketNumber} has been claimed, you can now view and reply to it in <#${channel.id}>`,
+            content: `Ticket #${ticket.ticketNumber} has been claimed, you can now view and reply to it in <#${ticketChannel.id}>`,
             components: [],
         });
     }
@@ -1356,6 +1340,7 @@ export class Feature {
         const ticket = await db
             .selectFrom('tickets')
             .select('id')
+            .select('channelId')
             .select('ticketAdminMessageId')
             .select('ticketNumber')
             .select('categoryId')
@@ -1371,7 +1356,7 @@ export class Feature {
             .executeTakeFirstOrThrow();
 
         // Get the ticket channel
-        const channel = await this.getTicketChannel(interaction.user.id, interaction.guild, ticket.id, category.name, ticket.ticketNumber);
+        const channel = ticket.channelId ? ((interaction.guild.channels.cache.get(ticket.channelId) ?? await interaction.guild.channels.fetch(ticket.channelId)) as TextChannel | null) : null;
 
         // Check if the ticket's channel still exists
         if (!channel) {

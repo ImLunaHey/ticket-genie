@@ -1087,7 +1087,7 @@ export class Feature {
         await db
             .updateTable('tickets')
             .set({
-                claimedById: undefined,
+                claimedById: null,
                 state: 'CLOSED',
             })
             .where('id', '=', ticket.id)
@@ -1220,7 +1220,7 @@ export class Feature {
         // Check if the staff member has too many claimed tickets
         if (claimedTickets >= 5) {
             await interaction.editReply({
-                content: 'You can only claim 5 tickets at at time',
+                content: 'You can only claim 5 tickets at a time',
                 components: [],
             });
             return;

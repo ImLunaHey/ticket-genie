@@ -1,3 +1,4 @@
+import '@total-typescript/ts-reset';
 import { db } from '@app/common/database';
 import { generateInputString } from '@app/common/generate-input-string';
 import { DiscordEvent } from '@app/models/discord-event';

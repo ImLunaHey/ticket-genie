@@ -9,7 +9,9 @@ import { ButtonComponent, Discord } from 'discordx';
 
 @Discord()
 export class ClaimTicketButton extends DiscordButton {
-    service = 'claim-ticket';
+    constructor() {
+        super('claim-ticket');
+    }
 
     @ButtonComponent({
         id: createRegex('claim-ticket'),

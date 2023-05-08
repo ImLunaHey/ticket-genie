@@ -3,10 +3,9 @@ import { globalLogger } from '@app/logger';
 
 export abstract class DiscordEvent {
     client = client;
-    service: string;
     logger: typeof globalLogger;
 
-    constructor() {
+    constructor(private service: string) {
         this.logger = globalLogger.child({
             service: `event:${this.service}`,
         });

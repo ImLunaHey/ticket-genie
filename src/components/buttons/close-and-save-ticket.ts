@@ -35,7 +35,9 @@ const splitTranscript = (inputString: string): string[] => {
 
 @Discord()
 export class CloseAndSaveTicketButton extends DiscordButton {
-    service = 'close-and-save-ticket';
+    constructor() {
+        super('close-and-save-ticket');
+    }
 
     @ButtonComponent({
         id: createRegex('close-and-save-ticket'),

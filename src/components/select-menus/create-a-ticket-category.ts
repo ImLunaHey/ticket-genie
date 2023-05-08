@@ -5,7 +5,9 @@ import { Discord, SelectMenuComponent } from 'discordx';
 
 @Discord()
 export class CreateATicketCategorySelectMenu extends DiscordSelectMenu {
-    service = 'create-a-ticket-category';
+    constructor() {
+        super('create-a-ticket-category');
+    }
 
     @SelectMenuComponent({
         id: 'create-a-ticket-category',

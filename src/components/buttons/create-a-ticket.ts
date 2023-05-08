@@ -16,7 +16,9 @@ const resolveRoles = async (guild: Guild, roles: GuildMemberRoleManager | string
 
 @Discord()
 export class CreateATicketButton extends DiscordButton {
-    service = 'create-a-ticket';
+    constructor() {
+        super('create-a-ticket');
+    }
 
     @ButtonComponent({
         id: createRegex('create-a-ticket'),

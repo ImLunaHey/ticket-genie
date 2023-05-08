@@ -10,7 +10,9 @@ import { setTimeout } from 'timers/promises';
 
 @Discord()
 export class CloseTicketButton extends DiscordButton {
-    service = 'close-ticket';
+    constructor() {
+        super('close-ticket');
+    }
 
     @ButtonComponent({
         id: createRegex('close-ticket'),

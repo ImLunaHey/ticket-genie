@@ -8,7 +8,9 @@ import { ButtonComponent, Discord } from 'discordx';
 
 @Discord()
 export class StaffToolsButton extends DiscordButton {
-    service = 'staff-tools';
+    constructor() {
+        super('staff-tools');
+    }
 
     @ButtonComponent({
         id: createRegex('staff-tools'),

@@ -13,8 +13,9 @@ export const startBot = async () => {
         logLevel: env.LOG_LEVEL,
     });
 
-    // Load all the events, commands and api
-    await import('./features/tickets');
+    // Load all the commands, events, etc.
+    await import('./components');
+    await import('./events');
 
     // Connect to the discord gateway
     await client.login(env.BOT_TOKEN);

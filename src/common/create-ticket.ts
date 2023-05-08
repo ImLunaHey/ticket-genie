@@ -30,6 +30,9 @@ const getNextTicketNumber = async (guildId: string): Promise<number> => {
     });
 };
 
+// Create logger instance
+const logger = globalLogger.child({ service: 'common:create-ticket' });
+
 export const createTicket = async (guild: Guild, user: User, categoryId: string): Promise<TextChannel> => {
     const botUserId = client.user?.id;
     if (!botUserId) throw new Error('Bot is still starting');
@@ -50,7 +53,7 @@ export const createTicket = async (guild: Guild, user: User, categoryId: string)
         .where('id', '=', categoryId)
         .executeTakeFirstOrThrow();
 
-    globalLogger.info('Creating ticket channel', {
+    logger.info('Creating ticket channel', {
         userId: user.id,
         guildId: guild.id,
         ticketNumber,
@@ -114,7 +117,7 @@ export const createTicket = async (guild: Guild, user: User, categoryId: string)
         })
         .execute();
 
-    globalLogger.info('Creating ticket admin message', {
+    logger.info('Creating ticket admin message', {
         userId: user.id,
         guildId: guild.id,
         ticketNumber,

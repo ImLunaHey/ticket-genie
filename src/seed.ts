@@ -13,12 +13,15 @@ const verificationCategoryId = '24178f51-6bdb-472c-b3cc-30bf9354f1e7';
 const json = <T>(value: T): RawBuilder<T> => sql`CAST(${JSON.stringify(value)} AS JSON)`;
 
 export const seedDatabase = async () => {
+    // Create logger instance
+    const logger = globalLogger.child({ service: 'seed-database' });
+
     // This will seed data for luna's lobby
     // This should be removed before going stable
-    globalLogger.info('Seeding database');
+    logger.info('Seeding database');
 
     // Create the guild
-    globalLogger.info('Creating the guild');
+    logger.info('Creating the guild');
     await db
         .insertInto('guilds')
         .ignore()
@@ -30,7 +33,7 @@ export const seedDatabase = async () => {
         .execute();
 
     // Create the support category
-    globalLogger.info('Creating the "support" category');
+    logger.info('Creating the "support" category');
     const query = db
         .insertInto('categories')
         .ignore()
@@ -51,7 +54,7 @@ export const seedDatabase = async () => {
     await query.execute();
 
     // Create the verification category
-    globalLogger.info('Creating the "verification" category');
+    logger.info('Creating the "verification" category');
     await db
         .insertInto('categories')
         .ignore()
@@ -86,7 +89,7 @@ export const seedDatabase = async () => {
         .execute();
 
     // Create the main ticket panel in the "create-a-ticket" channel
-    globalLogger.info('Creating a panel');
+    logger.info('Creating a panel');
     await db
         .insertInto('panels')
         .ignore()

@@ -1,10 +1,10 @@
-FROM node:18-alpine as builder
+FROM oven/bun as builder
 
 WORKDIR /app
 
 # Install required packages
-COPY package*.json /app/
-RUN npm install
+COPY package*.json bun.lockb /app/
+RUN bun i
 
 # Copy source files
 COPY src /app/src
@@ -12,21 +12,21 @@ COPY tsconfig.json /app/
 COPY patches /app/patches
 
 # Build application
-RUN npm run build
+RUN bun run build
 
 # ==== Final Image
-FROM node:18-alpine as final
-USER node:node
+FROM oven/bun as final
+USER bun:bun
 WORKDIR /app
 
 # Copying build output
-COPY --from=builder --chown=node:node /app/package*.json ./
-COPY --from=builder --chown=node:node /app/dist dist
+COPY --from=builder --chown=bun:bun /app/package*.json /app/bun.lockb ./
+COPY --from=builder --chown=bun:bun /app/dist dist
 
 # Copy assets
-COPY --chown=node:node assets /app/assets
+COPY --chown=bun:bun assets /app/assets
 
 # Install only the production dependencies
-RUN npm install --production
+RUN bun i --production
 
-CMD npm start
+CMD bun run start
